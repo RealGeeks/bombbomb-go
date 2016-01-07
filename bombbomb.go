@@ -45,7 +45,7 @@ type ContactInfo struct {
 // response is 'failure', of if fail to perform the network request
 func (c *Client) AddContact(contact Contact) (ContactInfo, error) {
 	method := "AddContact"
-	resp, err := http.PostForm(c.URL+"?amethod="+method, url.Values{
+	resp, err := http.PostForm(c.URL+"?method="+method, url.Values{
 		"api_key":      {c.Key},
 		"eml":          {contact.Email},
 		"firstname":    {contact.FirstName},
