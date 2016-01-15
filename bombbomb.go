@@ -82,6 +82,24 @@ func (c *Client) CreateList(list List) (newList List, err error) {
 	return newList, err
 }
 
+// EnsureList returns an existing list or create one if a list with that
+// name doesn't exist yet
+//
+// CreateList will create duplicate lists if called more than once with
+// same list name. Use this method to avoid duplicates.
+func (c *Client) EnsureList(list List) (newList List, err error) {
+	lists, err := c.GetLists()
+	if err != nil {
+		return List{}, err
+	}
+	for _, l := range lists {
+		if l.Name == list.Name {
+			return l, nil
+		}
+	}
+	return c.CreateList(list)
+}
+
 func (c *Client) GetLists() (lists []List, err error) {
 	err = c.httpGET("GetLists", &lists)
 	return lists, err

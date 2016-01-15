@@ -140,7 +140,7 @@ var Stubs = map[string]string{
 		"info": {
 			"id": "4184993a-b98e-e9e4-19b6-da1019d9cd3d",
 			"user_id": "668345da-b2c0-fe51-ce2b-a318dbce5865",
-			"name": "Partners",
+			"name": "Buyers",
 			"description": null,
 			"upload_date": null,
 			"public_name": null,

@@ -57,12 +57,12 @@ func TestCreateList(t *testing.T) {
 		//	Key: "1bd5b0c2-9cf4-9798-145d-86cf7ff75254",
 	}
 	info, err := cli.CreateList(bombbomb.List{
-		Name: "Partners",
+		Name: "Buyers",
 	})
 
 	Ok(t, err)
 	Equals(t, "4184993a-b98e-e9e4-19b6-da1019d9cd3d", info.ID)
-	Equals(t, "Partners", info.Name)
+	Equals(t, "Buyers", info.Name)
 }
 
 //
@@ -91,4 +91,63 @@ func TestGetLists(t *testing.T) {
 	Equals(t, "3c20f8a3-2d95-8966-4add-0957dd0d23c5", lists[1].ID)
 	Equals(t, "Suppression List", lists[1].Name)
 	Equals(t, "0", lists[1].ContactCount)
+}
+
+//
+// EnsureList
+//
+
+func TestEnsureList_CreateWhenNotFound(t *testing.T) {
+	responses := []string{Stubs["GetLists"], Stubs["CreateList"]}
+	respcount := 0
+	requests := []*http.Request{}
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests = append(requests, r)
+		io.WriteString(w, responses[respcount])
+		respcount += 1
+	}))
+	defer ts.Close()
+
+	cli := &bombbomb.Client{
+		URL: ts.URL,
+		Key: "123",
+	}
+	list, err := cli.EnsureList(bombbomb.List{
+		Name: "Buyers",
+	})
+
+	Ok(t, err)
+	Equals(t, "Buyers", list.Name)
+	Equals(t, "4184993a-b98e-e9e4-19b6-da1019d9cd3d", list.ID)
+
+	Equals(t, 2, len(requests))
+	Equals(t, "GET", requests[0].Method)
+	Equals(t, "POST", requests[1].Method)
+}
+
+func TestEnsureList_GetWhenFound(t *testing.T) {
+	responses := []string{Stubs["GetLists"], Stubs["CreateList"]}
+	respcount := 0
+	requests := []*http.Request{}
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests = append(requests, r)
+		io.WriteString(w, responses[respcount])
+		respcount += 1
+	}))
+	defer ts.Close()
+
+	cli := &bombbomb.Client{
+		URL: ts.URL,
+		Key: "123",
+	}
+	list, err := cli.EnsureList(bombbomb.List{
+		Name: "Partners",
+	})
+
+	Ok(t, err)
+	Equals(t, "Partners", list.Name)
+	Equals(t, "4184993a-b98e-e9e4-19b6-da1019d9cd3d", list.ID)
+
+	Equals(t, 1, len(requests))
+	Equals(t, "GET", requests[0].Method)
 }
