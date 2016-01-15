@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // Client to BombBomb API as documented in http://bombbomb.com/api
@@ -51,6 +52,15 @@ type Contact struct {
 	LastName    string `json:"last_name"`
 	Email       string
 	PhoneNumber string `json:"phone_number"`
+
+	// BombBomb allows one to send a list of list ids this contact
+	// should be added to -- 'listlist' field
+	//
+	// If you don't know the ids, use ListNames and we'll ensure
+	// a list with that name exists. If you know the IDs, use ListIDs,
+	// it's much faster
+	ListsNames []string
+	ListsIDs   []string
 }
 
 func (c Contact) Values() url.Values {
@@ -73,7 +83,22 @@ func (l List) Values() url.Values {
 }
 
 func (c *Client) AddContact(contact Contact) (newContact Contact, err error) {
-	err = c.httpPOST("AddContact", contact.Values(), &newContact)
+	values := contact.Values()
+	// when adding contact to lists by name ensure those lists exist and fetch their ids
+	if len(contact.ListsNames) > 0 {
+		for _, name := range contact.ListsNames {
+			list, err := c.EnsureList(List{Name: name})
+			if err != nil {
+				return Contact{}, err
+			}
+			contact.ListsIDs = append(contact.ListsIDs, list.ID)
+		}
+	}
+	// when adding contact to lists by id (or if ids fetched above) add those the 'listlist'
+	if len(contact.ListsIDs) > 0 {
+		values.Set("listlist", strings.Join(contact.ListsIDs, ";"))
+	}
+	err = c.httpPOST("AddContact", values, &newContact)
 	return newContact, err
 }
 
