@@ -2,8 +2,10 @@ package bombbomb_test
 
 import (
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/RealGeeks/bombbomb-go"
@@ -16,7 +18,9 @@ import (
 //
 
 func TestAddContact(t *testing.T) {
+	var requestBody url.Values
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestBody = readValues(t, r)
 		io.WriteString(w, Stubs["AddContact"])
 	}))
 	defer ts.Close()
@@ -25,19 +29,26 @@ func TestAddContact(t *testing.T) {
 		URL: ts.URL,
 		Key: "123",
 	}
-	contact, err := cli.AddContact(bombbomb.Contact{
+	contactToCreate := bombbomb.Contact{
 		FirstName:   "Jack",
 		LastName:    "Johnson",
 		Email:       "jj@gmail.com",
 		PhoneNumber: "808-123-4321",
-	})
+	}
+	contactCreated, err := cli.AddContact(contactToCreate)
+
+	expectedRequestBody := contactToCreate.Values()
+	expectedRequestBody["api_key"] = []string{"123"}
 
 	Ok(t, err)
-	Equals(t, "106e0e29-e9cf-b812-b895-dcdc059cf9ec", contact.ID)
-	Equals(t, "Jack", contact.FirstName)
-	Equals(t, "Johnson", contact.LastName)
-	Equals(t, "jj@gmail.com", contact.Email)
-	Equals(t, "808-123-4321", contact.PhoneNumber)
+	Equals(t, expectedRequestBody, requestBody)
+	Equals(t, bombbomb.Contact{
+		ID:          "106e0e29-e9cf-b812-b895-dcdc059cf9ec",
+		FirstName:   "Jack",
+		LastName:    "Johnson",
+		Email:       "jj@gmail.com",
+		PhoneNumber: "808-123-4321",
+	}, contactCreated)
 }
 
 //
@@ -53,8 +64,6 @@ func TestCreateList(t *testing.T) {
 	cli := &bombbomb.Client{
 		URL: ts.URL,
 		Key: "123",
-		//	URL: "https://app.bombbomb.com/app/api/api.php",
-		//	Key: "1bd5b0c2-9cf4-9798-145d-86cf7ff75254",
 	}
 	info, err := cli.CreateList(bombbomb.List{
 		Name: "Buyers",
@@ -150,4 +159,21 @@ func TestEnsureList_GetWhenFound(t *testing.T) {
 
 	Equals(t, 1, len(requests))
 	Equals(t, "GET", requests[0].Method)
+}
+
+//
+// Helpers
+//
+
+func readValues(t *testing.T, r *http.Request) url.Values {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Fatalf("Failed to read request body: %s", err)
+	}
+	r.Body.Close()
+	values, err := url.ParseQuery(string(body))
+	if err != nil {
+		t.Fatalf("Failed to parse request POST body: %s", err)
+	}
+	return values
 }
