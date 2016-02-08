@@ -32,6 +32,7 @@ import (
 type Client struct {
 	URL string
 	Key string
+	Src string // optional. identifies client using the api
 }
 
 // response to a request to BombBomb API. Format is always the same.
@@ -132,12 +133,19 @@ func (c *Client) GetLists() (lists []List, err error) {
 
 func (c *Client) httpPOST(method string, values url.Values, instance interface{}) error {
 	values.Set("api_key", c.Key)
+	if c.Src != "" {
+		values.Set("xsrc", c.Src)
+	}
 	resp, err := http.PostForm(c.URL+"?method="+method, values)
 	return c.handleResponse(method, resp, err, instance)
 }
 
 func (c *Client) httpGET(method string, instance interface{}) error {
-	resp, err := http.Get(c.URL + "?method=" + method + "&api_key=" + c.Key)
+	uri := c.URL + "?method=" + method + "&api_key=" + c.Key
+	if c.Src != "" {
+		uri += "&xsrc=" + c.Src
+	}
+	resp, err := http.Get(uri)
 	return c.handleResponse(method, resp, err, instance)
 }
 
