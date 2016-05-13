@@ -5,12 +5,15 @@ package bombbomb
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
+
+var ErrNoSubscription = errors.New("This account does not have an active subscription. Please contact support")
 
 // Client to BombBomb API as documented in http://bombbomb.com/api
 //
@@ -158,6 +161,9 @@ func (c *Client) handleResponse(method string, resp *http.Response, err error, i
 		return fmt.Errorf("%s failed to read body (%s)", method, err)
 	}
 	resp.Body.Close()
+	if isNoSubscription(resp.StatusCode, body) {
+		return ErrNoSubscription
+	}
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("%s returned status %d with body '%s'", method, resp.StatusCode, string(body))
 	}
@@ -172,4 +178,8 @@ func (c *Client) handleResponse(method string, resp *http.Response, err error, i
 		return fmt.Errorf("%s returned invalid 'info' json '%s' (%s)", method, string(body), err)
 	}
 	return nil
+}
+
+func isNoSubscription(status int, body []byte) bool {
+	return status == 403 && strings.Contains(string(body), "does not have an active subscription")
 }

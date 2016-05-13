@@ -162,6 +162,71 @@ func TestEnsureList_GetWhenFound(t *testing.T) {
 }
 
 //
+// Specific errors
+//
+
+func TestErrNoSubscription(t *testing.T) {
+
+	// all API calls should return ErrNoSubscription
+	var tests = []struct {
+		Name        string
+		MakeRequest func(cli *bombbomb.Client) error
+	}{
+		{
+			Name: "CreateList",
+			MakeRequest: func(bb *bombbomb.Client) error {
+				_, err := bb.CreateList(bombbomb.List{Name: "Buyers"})
+				return err
+			},
+		},
+		{
+			Name: "AddContact",
+			MakeRequest: func(bb *bombbomb.Client) error {
+				_, err := bb.AddContact(bombbomb.Contact{
+					FirstName:   "Jack",
+					LastName:    "Johnson",
+					Email:       "jj@gmail.com",
+					PhoneNumber: "808-123-4321",
+				})
+				return err
+			},
+		},
+		{
+			Name: "GetLists",
+			MakeRequest: func(bb *bombbomb.Client) error {
+				_, err := bb.GetLists()
+				return err
+			},
+		},
+		{
+			Name: "EnsureList",
+			MakeRequest: func(bb *bombbomb.Client) error {
+				_, err := bb.EnsureList(bombbomb.List{Name: "Buyers"})
+				return err
+			},
+		},
+	}
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(403)
+		io.WriteString(w, `{"methodName":"GetLists","status":"failure","info":"This account {\"user_id\":\"41808bb6-f086-bc0a-3460-3955c752804d\"} does not have an active subscription. Please contact support."}`)
+	}))
+	defer ts.Close()
+
+	cli := &bombbomb.Client{URL: ts.URL, Key: "123"}
+	for _, tt := range tests {
+		err := tt.MakeRequest(cli)
+		if err == nil {
+			t.Errorf("%v did not fail", tt.Name)
+			continue
+		}
+		if err != bombbomb.ErrNoSubscription {
+			t.Errorf("%v returned invalid error: %v", tt.Name, err)
+		}
+	}
+}
+
+//
 // Helpers
 //
 
