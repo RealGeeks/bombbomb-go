@@ -11,9 +11,12 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 var ErrNoSubscription = errors.New("This account does not have an active subscription. Please contact support")
+
+var httpcli = &http.Client{Timeout: 5 * time.Second}
 
 // Client to BombBomb API as documented in http://bombbomb.com/api
 //
@@ -139,7 +142,7 @@ func (c *Client) httpPOST(method string, values url.Values, instance interface{}
 	if c.Src != "" {
 		values.Set("xsrc", c.Src)
 	}
-	resp, err := http.PostForm(c.URL+"?method="+method, values)
+	resp, err := httpcli.PostForm(c.URL+"?method="+method, values)
 	return c.handleResponse(method, resp, err, instance)
 }
 
@@ -148,7 +151,7 @@ func (c *Client) httpGET(method string, instance interface{}) error {
 	if c.Src != "" {
 		uri += "&xsrc=" + c.Src
 	}
-	resp, err := http.Get(uri)
+	resp, err := httpcli.Get(uri)
 	return c.handleResponse(method, resp, err, instance)
 }
 
