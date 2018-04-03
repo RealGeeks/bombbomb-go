@@ -16,7 +16,7 @@ import (
 
 var ErrNoSubscription = errors.New("This account does not have an active subscription. Please contact support")
 
-var httpcli = &http.Client{Timeout: 5 * time.Second}
+var httpcli = &http.Client{Timeout: 2 * time.Second}
 
 // Client to BombBomb API as documented in http://bombbomb.com/api
 //
